@@ -1,9 +1,16 @@
 from setuptools import setup, find_packages
 
+
+with open("README.md", "r", encoding="utf-8") as fh:
+    long_description = fh.read()
+
+
 setup(
     name='cpdfkit',
-    version='0.1.0',
+    version='0.1.4',
     description='A toolkit for rendering HTML to PDF using Chrome headless.',
+    long_description=long_description,
+    long_description_content_type='text/markdown',
     author='Uli Toll',
     author_email='cpdfkit@codingcow.de',
     url='https://github.com/codingcowde/cpdfkit', 

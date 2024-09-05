@@ -21,14 +21,24 @@ It does not utilise the debugging port of chrome or selenium but subprocess to t
 
 This toolkit requires a local installation of Google Chrome or Chromium. Ensure Chrome or Chromium is accessible in your system PATH or specify the path when using the toolkit.
 
+### From GitHub
+
 1. Clone the repository:
    ```bash
-   git clone https://codingcow.de/CPDFkit.git
+   git clone'https://github.com/codingcowde/cpdfkit.git
    ```
 2. Navigate to the cloned directory:
    ```bash
    cd CPDFKit
    ```
+
+### Via pip
+
+```bash
+pip install cpdfkit
+```
+
+
 
 ## Usage
 
@@ -37,7 +47,7 @@ This toolkit requires a local installation of Google Chrome or Chromium. Ensure 
 Here is a simple example of how to generate a PDF from a URL and save it to a file:
 
 ```python
-from CPDFKit import generate_pdf
+from cpdfkit import generate_pdf
 
 # Generate PDF from a URL and save it to 'output.pdf'
 generate_pdf(

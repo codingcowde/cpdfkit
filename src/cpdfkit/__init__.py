@@ -1,1 +1,1 @@
-from .cpdfkit import CPDFKit, generate_pdf, find_chrome, PAPER_SIZESexiyt
+from .cpdfkit import CPDFKit, generate_pdf, find_chrome, PAPER_SIZES

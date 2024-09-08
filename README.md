@@ -102,7 +102,7 @@ You can customize the behavior by specifying various parameters:
 
 ## Contributing
 
-Contributions are welcome! Please read the contributing guide located in [CONTRIBUTING.md](CONTRIBUTING.md).
+Contributions are welcome! Please read the contributing guide located in [CONTRIBUTE.md](CONTRIBUTE.md).
 
 ## License
 

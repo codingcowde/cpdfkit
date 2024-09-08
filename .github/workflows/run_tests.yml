@@ -55,6 +55,7 @@ jobs:
       env:
         BROWSER: ${{ matrix.browser }}
       run: |
+        env
         python -m unittest discover tests -v
 
     - name: Upload test results

@@ -70,7 +70,7 @@ class CPDFKit:
         """
         provided_path_exists = False
 
-        if chrome_path:
+        if isinstance(chrome_path, str):
             provided_path_exists = os.path.exists(chrome_path)
 
         if not chrome_path:
@@ -79,7 +79,7 @@ class CPDFKit:
 
         if not chrome_path or not provided_path_exists:
             raise ChromiumPathException(
-                "Chrome or Chromium browser not found. Please install it or provide the path."
+                f"Chrome or Chromium browser not found at {chrome_path}. Please install it or provide the path."
             )
 
         self.chrome_path = chrome_path
@@ -419,6 +419,7 @@ def generate_pdf(
                 margin_right=margin_right,
                 js_delay=js_delay,
                 landscape=landscape,
+                
             )
         elif url_or_path is not None:
             return toolkit.render_pdf(

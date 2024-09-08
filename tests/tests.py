@@ -105,8 +105,8 @@ class TestChromePDFToolkit(unittest.TestCase):
         self.assertIsNotNone(pdf_bytes, "PDF byte stream should be generated from HTML string")
         self.assertIsInstance(pdf_bytes, bytes, "Output should be of type bytes")
 
-    @patch('cpdfkit.find_chrome', return_value=None)
-    def test_generate_pdf_no_chrome(self, mock_find_chrome):
+  
+    def test_generate_pdf_no_chrome(self):
         # Test that an error is raised if Chrome is not found
         with self.assertRaises(ChromiumPathException):
             _ = CPDFKit("/bin/definetly_not_a_valid_binary")

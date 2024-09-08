@@ -52,6 +52,7 @@ jobs:
       run: | 
         which ${{matrix.browser}}
         which chromium-browser
+        which chromium
     - name: Run tests with ${{ matrix.browser }}
       env:
         BROWSER: ${{ matrix.browser }}

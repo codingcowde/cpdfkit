@@ -484,15 +484,3 @@ if __name__ == "__main__":
         print(f"Error occurred: {str(e)}")
 
 
-generate_pdf(
-    url_or_path="https://codingcow.de",
-    output_path="output.pdf",
-    format="A4",
-    margin_top=0,
-    margin_bottom=0,
-    margin_left=0,
-    margin_right=0,
-    js_delay=2,
-    landscape=False,
-    chrome_path="/snap/bin/chromium",
-)

@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
         python-version: [3.7, 3.8, 3.9, 3.11, 3.12]
-        browser: [chromium-browser, chrome]
+        browser: [chromium-browser, google-chrome]
 
     steps:
     - name: Checkout code
@@ -32,7 +32,7 @@ jobs:
 
     - name: Install and set up ${{ matrix.browser }}
       run: |
-        if [ "${{ matrix.browser }}" = "chrome" ]; then
+        if [ "${{ matrix.browser }}" = "google-chrome" ]; then
           sudo apt-get update
           sudo apt-get install -y wget gnupg
           wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -

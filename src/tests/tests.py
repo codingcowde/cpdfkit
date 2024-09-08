@@ -2,7 +2,19 @@ import unittest
 import os
 import tempfile
 from unittest.mock import patch
-from cpdfkit import generate_pdf, find_chrome
+from cpdfkit import generate_pdf, find_chrome, CPDFKit
+from cpdfkit.exceptions import (
+    InvalidFormatException,
+    InvalidWindowSizeException,
+    InvalidDelayException,
+    InvalidMarginException,
+    InvalidUrlException,
+    ChromiumPathException,
+    NoDocumentException,
+)
+
+TEST_URL = "https://codingcow.de"
+
 
 class TestChromePDFToolkit(unittest.TestCase):
 
@@ -60,7 +72,7 @@ class TestChromePDFToolkit(unittest.TestCase):
     def test_generate_pdf_as_byte_stream_from_url(self):
         # Test generating a PDF from a URL and returning as a byte stream
         pdf_bytes = generate_pdf(
-            url_or_path="https://codingcow.de",
+            url_or_path=TEST_URL,
             format="A4",
             margin_top=10,
             margin_bottom=10,
@@ -96,9 +108,14 @@ class TestChromePDFToolkit(unittest.TestCase):
     @patch('cpdfkit.find_chrome', return_value=None)
     def test_generate_pdf_no_chrome(self, mock_find_chrome):
         # Test that an error is raised if Chrome is not found
-        with self.assertRaises(EnvironmentError):
+        with self.assertRaises(ChromiumPathException):
+            _ = CPDFKit("/bin/definetly_not_a_valid_binary")
+          
+
+    def test_missing_html_and_url_input(self):
+        # Test that an error is raised if neither url_or_path nor html_string is provided
+        with self.assertRaises(NoDocumentException):
             generate_pdf(
-                url_or_path="https://codingcow.de",
                 format="A4",
                 margin_top=10,
                 margin_bottom=10,
@@ -108,18 +125,6 @@ class TestChromePDFToolkit(unittest.TestCase):
                 landscape=False
             )
 
-    def test_invalid_input(self):
-        # Test that an error is raised if neither url_or_path nor html_string is provided
-        with self.assertRaises(ValueError):
-            generate_pdf(
-                format="A4",
-                margin_top=10,
-                margin_bottom=10,
-                margin_left=10,
-                margin_right=10,
-                js_delay=2,
-                landscape=False
-            )
 
 if __name__ == "__main__":
     unittest.main()

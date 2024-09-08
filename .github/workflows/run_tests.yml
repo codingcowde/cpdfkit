@@ -48,6 +48,9 @@ jobs:
       run: |
         pip install -e .
 
+    - name: Run which to see if the setup is suitable for tests
+      run: | 
+        which ${{matrix.browser}}
     - name: Run tests with ${{ matrix.browser }}
       env:
         BROWSER: ${{ matrix.browser }}

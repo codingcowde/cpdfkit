@@ -51,12 +51,11 @@ jobs:
     - name: Run which to see if the setup is suitable for tests
       run: | 
         which ${{matrix.browser}}
+        which chromium-browser
     - name: Run tests with ${{ matrix.browser }}
       env:
         BROWSER: ${{ matrix.browser }}
-      run: |
-        env
-        ls -ahl
+      run: |       
         python -m unittest discover tests -v
 
     - name: Upload test results

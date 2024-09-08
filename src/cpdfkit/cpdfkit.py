@@ -4,6 +4,17 @@ import os
 import shutil
 import tempfile
 from urllib.parse import urlparse
+from cpdfkit.exceptions import (
+    InvalidFormatException,
+    InvalidWindowSizeException,
+    InvalidDelayException,
+    InvalidMarginException,
+    InvalidUrlException,
+    ChromiumPathException,
+    NoDocumentException,
+    DangerousPathException,
+    InvalidPathException
+)
 
 # Dictionary of common paper sizes with dimensions in millimeters.
 PAPER_SIZES = {
@@ -46,6 +57,7 @@ PAPER_SIZES = {
     "Tabloid": (279, 432),
 }
 
+
 class CPDFKit:
     """Toolkit for rendering PDFs using Chrome in headless mode."""
 
@@ -56,15 +68,24 @@ class CPDFKit:
             chrome_path (str, optional): Path to the Chrome executable.
             window_size (tuple, optional): The dimensions of the browser window. Defaults to (1920, 1080)
         """
+        provided_path_exists = False
+
+        if chrome_path:
+            provided_path_exists = os.path.exists(chrome_path)
+
         if not chrome_path:
             chrome_path = find_chrome()
-        if not chrome_path:
-            raise EnvironmentError("Chrome or Chromium browser not found. Please install it or provide the path.")
+            provided_path_exists = isinstance(chrome_path, str)
+
+        if not chrome_path or not provided_path_exists:
+            raise ChromiumPathException(
+                "Chrome or Chromium browser not found. Please install it or provide the path."
+            )
 
         self.chrome_path = chrome_path
         self.window_size = self._sanitize_window_size(window_size)
 
-    def _sanitize_paper_size(self, format:str):
+    def _sanitize_paper_size(self, format: str):
         """Ensures that the paper size format is valid.
 
         Args:
@@ -78,7 +99,9 @@ class CPDFKit:
         """
         if format in PAPER_SIZES:
             return format
-        raise ValueError(f"Invalid format chosen. Must be one of {list(PAPER_SIZES.keys())}.")
+        raise InvalidFormatException(
+            f"Invalid format chosen. Must be one of {list(PAPER_SIZES.keys())}."
+        )
 
     def _sanitize_window_size(self, window_size):
         """Validates and sanitizes the provided window size.
@@ -94,9 +117,16 @@ class CPDFKit:
         """
         if isinstance(window_size, tuple) and len(window_size) == 2:
             width, height = window_size
-            if isinstance(width, int) and isinstance(height, int) and width > 0 and height > 0:
+            if (
+                isinstance(width, int)
+                and isinstance(height, int)
+                and width > 0
+                and height > 0
+            ):
                 return window_size
-        raise ValueError("Invalid window size. Must be a tuple of two positive integers.")
+        raise InvalidWindowSizeException(
+            "Invalid window size. Must be a tuple of two positive integers."
+        )
 
     def _sanitize_path(self, path):
         """Validates and sanitizes the provided filesystem path.
@@ -110,11 +140,11 @@ class CPDFKit:
         Raises:
             ValueError: If the path is potentially dangerous or malformed.
         """
-        if not isinstance(path, str) or path == '':
-            raise ValueError("Invalid path provided.")
+        if not isinstance(path, str) or path == "":
+            raise InvalidPathException("Invalid path provided.")
         path = os.path.normpath(path)
-        if any(x in path for x in ('..', '~', '//', '\\\\')):
-            raise ValueError("Invalid path contains potentially dangerous components.")
+        if any(x in path for x in ("..", "~", "//", "\\\\")):
+            raise DangerousPathException("Invalid path contains potentially dangerous components.")
         return path
 
     def _sanitize_url(self, url):
@@ -130,8 +160,8 @@ class CPDFKit:
             ValueError: If the URL is not properly formatted or is unsafe.
         """
         parsed_url = urlparse(url)
-        if not parsed_url.scheme or parsed_url.scheme not in ('http', 'https', 'file'):
-            raise ValueError("URL must start with http://, https://, or file://")
+        if not parsed_url.scheme or parsed_url.scheme not in ("http", "https", "file"):
+            raise InvalidUrlException("URL must start with http://, https://, or file://")
         return url
 
     def _sanitize_delay(self, delay):
@@ -148,7 +178,7 @@ class CPDFKit:
         """
         if isinstance(delay, int) and delay >= 0:
             return delay
-        raise ValueError("JavaScript delay must be a non-negative integer.")
+        raise InvalidDelayException("JavaScript delay must be a non-negative integer.")
 
     def _sanitize_margins(self, margin):
         """Validates and sanitizes the provided margin values.
@@ -164,9 +194,20 @@ class CPDFKit:
         """
         if isinstance(margin, (int, float)) and margin >= 0:
             return margin
-        raise ValueError("Margins must be non-negative numbers.")
+        raise InvalidMarginException("Margins must be non-negative numbers.")
 
-    def render_pdf(self, url_or_path, output_path=None, format="A4", margin_top=0, margin_bottom=0, margin_left=0, margin_right=0, js_delay=0, landscape=False):
+    def render_pdf(
+        self,
+        url_or_path,
+        output_path=None,
+        format="A4",
+        margin_top=0,
+        margin_bottom=0,
+        margin_left=0,
+        margin_right=0,
+        js_delay=0,
+        landscape=False,
+    ):
         """Renders a PDF from a URL or a file path.
 
         Args:
@@ -177,7 +218,7 @@ class CPDFKit:
             margin_bottom (float): The bottom margin in inches.
             margin_left (float): The left margin in inches.
             margin_right (float): The right margin in inches.
-            js_delay (int): The delay in seconds before rendering the page.
+            js_delay (int): The delay in milliseconds before rendering the page.
             landscape (bool): Whether to render the page in landscape orientation.
 
         Returns:
@@ -186,18 +227,19 @@ class CPDFKit:
         Raises:
             subprocess.CalledProcessError: If the Chrome subprocess fails.
         """
-        sanitized_input = self._sanitize_url(url_or_path) if url_or_path.startswith(('http', 'file')) else self._sanitize_path(url_or_path)
+        sanitized_input = (
+            self._sanitize_url(url_or_path)
+            if url_or_path.startswith(("http", "file"))
+            else self._sanitize_path(url_or_path)
+        )
         sanitized_delay = self._sanitize_delay(js_delay)
         sanitized_margins = {
-            'top': self._sanitize_margins(margin_top),
-            'bottom': self._sanitize_margins(margin_bottom),
-            'left': self._sanitize_margins(margin_left),
-            'right': self._sanitize_margins(margin_right),
+            "top": self._sanitize_margins(margin_top),
+            "bottom": self._sanitize_margins(margin_bottom),
+            "left": self._sanitize_margins(margin_left),
+            "right": self._sanitize_margins(margin_right),
         }
         sanitized_format = self._sanitize_paper_size(format)
-
-        if sanitized_delay > 0:
-            time.sleep(sanitized_delay)
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_pdf_file:
             temp_pdf_path = temp_pdf_file.name
@@ -205,23 +247,25 @@ class CPDFKit:
         try:
             chrome_command = [
                 self._sanitize_path(self.chrome_path),
-                '--headless',
-                '--disable-gpu',
-                '--run-all-compositor-stages-before-draw',
-                '--no-pdf-header-footer',
-                '--print-to-pdf-no-header',
-                '--no-sandbox',
-                f'--window-size={self.window_size[0]},{self.window_size[1]}',                           
-                f'--print-to-pdf={temp_pdf_path}',
+                "--headless",
+                "--disable-gpu",
+                "--run-all-compositor-stages-before-draw",
+                "--no-pdf-header-footer",
+                "--print-to-pdf-no-header",
+                "--no-sandbox",
+                f"--window-size={self.window_size[0]},{self.window_size[1]}",
+                f"--print-to-pdf={temp_pdf_path}",
             ]
 
             if sanitized_margins:
-                chrome_command.extend([
-                    f'--print-to-pdf-margin-top={sanitized_margins["top"]}',
-                    f'--print-to-pdf-margin-bottom={sanitized_margins["bottom"]}',
-                    f'--print-to-pdf-margin-left={sanitized_margins["left"]}',
-                    f'--print-to-pdf-margin-right={sanitized_margins["right"]}',
-                ])
+                chrome_command.extend(
+                    [
+                        f'--print-to-pdf-margin-top={sanitized_margins["top"]}',
+                        f'--print-to-pdf-margin-bottom={sanitized_margins["bottom"]}',
+                        f'--print-to-pdf-margin-left={sanitized_margins["left"]}',
+                        f'--print-to-pdf-margin-right={sanitized_margins["right"]}',
+                    ]
+                )
             else:
                 chrome_command.append("--no-margins")
 
@@ -230,16 +274,20 @@ class CPDFKit:
                 chrome_command.append(f"--print-to-pdf-paper-size={w},{h}")
 
             if landscape:
-                chrome_command.append('--landscape')
+                chrome_command.append("--landscape")
+
+            if sanitized_delay and sanitized_delay > 0:
+                chrome_command.append(f"--virtual-time-budget={sanitized_delay}")
+
 
             chrome_command.append(sanitized_input)
             subprocess.run(chrome_command, check=True)
 
-            with open(temp_pdf_path, 'rb') as file:
+            with open(temp_pdf_path, "rb") as file:
                 pdf_data = file.read()
 
             if output_path:
-                with open(self._sanitize_path(output_path), 'wb') as file:
+                with open(self._sanitize_path(output_path), "wb") as file:
                     file.write(pdf_data)
                 return None
             else:
@@ -248,7 +296,18 @@ class CPDFKit:
         finally:
             os.remove(temp_pdf_path)
 
-    def html_to_pdf(self, html_string, output_path=None, format="A4", margin_top=0, margin_bottom=0, margin_left=0, margin_right=0, js_delay=0, landscape=False):
+    def html_to_pdf(
+        self,
+        html_string,
+        output_path=None,
+        format="A4",
+        margin_top=0,
+        margin_bottom=0,
+        margin_left=0,
+        margin_right=0,
+        js_delay=0,
+        landscape=False,
+    ):
         """Converts HTML string to PDF.
 
         Args:
@@ -269,9 +328,9 @@ class CPDFKit:
             IOError: If the HTML file creation or reading fails.
         """
         with tempfile.NamedTemporaryFile(delete=False, suffix=".html") as temp_file:
-            temp_file.write(html_string.encode('utf-8'))
+            temp_file.write(html_string.encode("utf-8"))
             temp_file_path = temp_file.name
-        
+
         try:
             return self.render_pdf(
                 url_or_path=f"file://{temp_file_path}",
@@ -282,7 +341,7 @@ class CPDFKit:
                 margin_left=margin_left,
                 margin_right=margin_right,
                 js_delay=js_delay,
-                landscape=landscape
+                landscape=landscape,
             )
         finally:
             os.remove(temp_file_path)
@@ -291,6 +350,7 @@ class CPDFKit:
         """Cleans up any resources used by the toolkit."""
         pass
 
+
 def find_chrome():
     """Searches for the Chrome or Chromium browser executable on the system.
 
@@ -298,17 +358,30 @@ def find_chrome():
         str|None: The path to the executable, or None if not found.
     """
     paths = [
-        shutil.which('chrome'),
-        shutil.which('google-chrome'),
-        shutil.which('chromium'),
-        shutil.which('chromium-browser'),
+        shutil.which("chrome"),
+        shutil.which("google-chrome"),
+        shutil.which("chromium"),
+        shutil.which("chromium-browser"),
     ]
     for path in paths:
         if path:
             return path
     return None
 
-def generate_pdf(url_or_path=None, html_string=None, output_path=None, format="A4", margin_top=0, margin_bottom=0, margin_left=0, margin_right=0, js_delay=0, landscape=False, chrome_path=None):
+
+def generate_pdf(
+    url_or_path=None,
+    html_string=None,
+    output_path=None,
+    format="A4",
+    margin_top=0,
+    margin_bottom=0,
+    margin_left=0,
+    margin_right=0,
+    js_delay=0,
+    landscape=False,
+    chrome_path=None,
+):
     """Generates a PDF from a URL or HTML string using detected Chrome.
 
     Args:
@@ -331,7 +404,7 @@ def generate_pdf(url_or_path=None, html_string=None, output_path=None, format="A
         EnvironmentError: If Chrome is not found on the system.
         ValueError: If neither `url_or_path` nor `html_string` is provided.
     """
-    
+
     toolkit = CPDFKit(chrome_path=chrome_path)
 
     try:
@@ -345,7 +418,7 @@ def generate_pdf(url_or_path=None, html_string=None, output_path=None, format="A
                 margin_left=margin_left,
                 margin_right=margin_right,
                 js_delay=js_delay,
-                landscape=landscape
+                landscape=landscape,
             )
         elif url_or_path is not None:
             return toolkit.render_pdf(
@@ -357,12 +430,13 @@ def generate_pdf(url_or_path=None, html_string=None, output_path=None, format="A
                 margin_left=margin_left,
                 margin_right=margin_right,
                 js_delay=js_delay,
-                landscape=landscape
+                landscape=landscape,
             )
         else:
-            raise ValueError("Either url_or_path or html_string must be provided.")
+            raise NoDocumentException("Either url_or_path or html_string must be provided.")
     finally:
         toolkit.close()
+
 
 # Example usage:
 if __name__ == "__main__":
@@ -377,7 +451,7 @@ if __name__ == "__main__":
             margin_left=0,
             margin_right=0,
             js_delay=2,
-            landscape=False
+            landscape=False,
         )
 
         # Generate a PDF from an HTML string.
@@ -395,7 +469,7 @@ if __name__ == "__main__":
             margin_left=10,
             margin_right=10,
             js_delay=2,
-            landscape=False
+            landscape=False,
         )
         if pdf_bytes:
             print(f"PDF generated, length: {len(pdf_bytes)} bytes")
@@ -407,3 +481,17 @@ if __name__ == "__main__":
         print(f"Chrome detection error: {str(e)}")
     except Exception as e:
         print(f"Error occurred: {str(e)}")
+
+
+generate_pdf(
+    url_or_path="https://codingcow.de",
+    output_path="output.pdf",
+    format="A4",
+    margin_top=0,
+    margin_bottom=0,
+    margin_left=0,
+    margin_right=0,
+    js_delay=2,
+    landscape=False,
+    chrome_path="/snap/bin/chromium",
+)

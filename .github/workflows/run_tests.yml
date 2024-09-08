@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
         python-version: [3.7, 3.8, 3.9, 3.11, 3.12]
-        browser: [chrome, chromium]
+        browser: [chromium, chrome]
 
     steps:
     - name: Checkout code
@@ -52,7 +52,7 @@ jobs:
       env:
         BROWSER: ${{ matrix.browser }}
       run: |
-        python -m unittest discover tests
+        python -m unittest discover tests -v
 
     - name: Upload test results
       if: always()
